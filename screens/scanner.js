@@ -6,9 +6,10 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
-import { BarCodeScanner, Permissions, SecureStore, GLView } from 'expo';
+import { BarCodeScanner, Camera, Permissions, SecureStore, GLView } from 'expo';
 import { Icon } from 'react-native-elements';
 import { amerKey, bagiKey } from '../keys';
+import RoomList from '../rooms_list';
 
 const Auth = bagiKey;
 
@@ -34,38 +35,83 @@ export default class Scanner extends Component {
    //   roomAvailable: createdRoom.responseStatus == 'accepted'
    // });
    // console.log(data);
-   this.setState({
-     showStatus: true,
-     roomAvailable: true || createdRoom.responseStatus == 'accepted'
-   });
+   // this.setState({
+   //   showStatus: true,
+   //   roomAvailable: true || createdRoom.responseStatus == 'accepted'
+   // });
+   // this._handleBarCodeRead("freshworks.com_2d3133323233393936323338@resource.calendar.google.com");
+  }
+
+  delay = (time) => {
+    return new Promise(function(resolve, reject) {
+      setTimeout(() => resolve(), time);
+    });
   }
 
   _handleBarCodeRead = async ({ data }) => {
-
     if (!this.state.stopScanning) {
       this.setState({stopScanning: true});
       console.log(data);
-      let room = await this.createRoom(JSON.parse(data));
-      console.log(room);
-      let status = await this.checkRoom(room);
-      let createdRoom = status.attendees.findBy('resource', true);
-      this.setState({
-        showStatus: true,
-        roomAvailable: createdRoom.responseStatus == 'accepted'
-      });
+      let status = await this.checkRoom(data);
+      console.log(status, 'CheckRoom', '****');
+      if (status.error) {
+
+      } else {
+        let sample = RoomList.items.find((i) => i.resourceEmail == data);
+        console.log(sample);
+        let {generatedResourceName} = sample;
+        console.log(generatedResourceName);
+        if (status && status.items.length == 0) {
+          let bookedStatus = await this.createRoom(data, generatedResourceName);
+          console.log(bookedStatus, 'Create Room', '############');
+          if (bookedStatus.status == 'confirmed') {
+            this.props.navigation.navigate('success', {
+              status: bookedStatus
+            });
+          } else {
+            this.props.navigation.navigate('failure', {
+              status: bookedStatus,
+              room: { resourceEmail: data, generatedResourceName }
+            });
+          }
+
+        } else {
+          this.props.navigation.navigate('failure', {
+            status,
+            room: { resourceEmail: data, generatedResourceName }
+          });
+        }
+      }
     }
   }
 
   checkRoom = async (room) => {
-    const roomStatus = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${room.id}?key=${Auth.API_KEY}`;
+    // room = JSON.parse(room);
+    // console.log('checkRoom', room, typeof room, room['resourceEmail'], room.resourceEmail, 'end');
+    let dateTime = new Date();
+    let startTime = dateTime.toISOString();
+    dateTime.setHours(dateTime.getHours() + 1);
+    let endTime = dateTime.toISOString();
+    let params = {
+      key: encodeURIComponent(Auth.API_KEY),
+      timeMin: encodeURIComponent(startTime),
+      timeMax: encodeURIComponent(endTime)
+    };
+    let calendarId = encodeURIComponent(room);
+    let url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${params.key}&timeMin=${params.timeMin}&timeMax=${params.timeMax}`;
     let accessToken = await SecureStore.getItemAsync('accessToken');
-    return await fetch(roomStatus, {
-      headers: { Authorization: `Bearer ${accessToken}`},
-      'content-type': 'application/json'
+    console.log(url, accessToken);
+    let result = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
     });
+    let status = await result.json();
+    return status;
   }
 
-  createRoom = async (data) => {
+  createRoom = async (resourceEmail, location) => {
     let user = await SecureStore.getItemAsync('user');
     let accessToken = await SecureStore.getItemAsync('accessToken');
     user = JSON.parse(user);
@@ -83,13 +129,13 @@ export default class Scanner extends Component {
       },
        'attendees': [
          {
-           email: data.resourceEmail,
+           email: resourceEmail,
            resource: true
          }, {
            email: user.email
          }
        ],
-       'location': data.resourceName
+       location
     };
     console.log(bookRoom, bookRoomData, accessToken);
     let res = await fetch(bookRoom, {
@@ -114,8 +160,7 @@ export default class Scanner extends Component {
 
 
   render() {
-    const { hasCameraPermission, roomAvailable, showStatus } = this.state;
-
+    const { hasCameraPermission, roomAvailable, showStatus, stopScanning } = this.state;
     let showActions = showStatus && (
       <View style={styles.action}>
         <Icon color='red' size={60} type='entypo' name='aircraft-landing' onPress={this.invade}/>
@@ -133,11 +178,17 @@ export default class Scanner extends Component {
           {/* <View style={styles.barCodeScanner}>
             {showActions}
           </View> */}
-          <BarCodeScanner
+          <Camera
+            type={Camera.Constants.Type.back}
+            onBarCodeRead={(data) => { !stopScanning && this._handleBarCodeRead(data); }}
+            style={styles.barCodeScanner}>
+            {showActions}
+          </Camera>
+          {/* <BarCodeScanner
             onBarCodeRead={this._handleBarCodeRead}
             style={styles.barCodeScanner}>
             {showActions}
-          </BarCodeScanner>
+          </BarCodeScanner> */}
         </View>
       );
     }

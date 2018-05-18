@@ -64,7 +64,8 @@ export default class Login extends Component {
       scopes: ['profile', 'email',
         'https://www.googleapis.com/auth/admin.directory.resource.calendar',
         'https://www.googleapis.com/auth/admin.directory.resource.calendar.readonly',
-        'https://www.googleapis.com/auth/calendar'
+        'https://www.googleapis.com/auth/calendar',
+        'https://www.googleapis.com/auth/calendar.readonly'
       ],
       androidClientId: Auth.ANDROID_KEY,
       iosClientId: Auth.IOS_KEY

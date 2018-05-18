@@ -44,8 +44,8 @@ export default class ArScreen extends Component {
         0.01,
         10000,
       );
-      this.camera.position.set(0, 5, -10);
-      this.camera.lookAt(new THREE.Vector3());
+      this.camera.position.set(0, 5, 10);
+      this.camera.lookAt(new THREE.Vector3(0,10,-10));
     }
     this.setupLights();
     this.createText();
@@ -75,13 +75,11 @@ export default class ArScreen extends Component {
       bevelSize: 0.8, // — Float. How far from text outline is bevel. Default is 8.
       bevelSegments: 0.3, // — Integer. Number of bevel segments. Default is 3.
     });
-    ExpoTHREE.utils.scaleLongestSideToSize(this.textMesh, 5);
-    // @amerr -0.5
-    ExpoTHREE.utils.alignMesh(this.textMesh, { y: 1, x: 0.5, z: -0.5 });
+    ExpoTHREE.utils.scaleLongestSideToSize(this.textMesh, 1);
+    ExpoTHREE.utils.alignMesh(this.textMesh, { y: 1, x: 0.5, z: 0.5 });
   };
 
   onRender = delta => {
-    // @amerr
     // this.scene.rotation.y -= 0.5 * delta;
     this.renderer.render(this.scene, this.camera);
   };

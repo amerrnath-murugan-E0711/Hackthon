@@ -15,14 +15,20 @@ import { SafeAreaView, createStackNavigator } from 'react-navigation';
 import LoginScreen from './screens/login';
 import ScannerScreen from './screens/scanner'
 import ArScreen from './screens/ar';
+import SuccessScreen from './screens/success';
+import FailureScreen from './screens/failure';
+import QrScreen from './screens/qr'
 
 const AppNavigator = createStackNavigator(
   {
-    login: ArScreen,
-    scanner: ScannerScreen
+    login: LoginScreen,
+    scanner: ScannerScreen,
+    success: SuccessScreen,
+    failure: FailureScreen,
+    qr: QrScreen
   },
   {
-    initialRouteName: 'login',
+    initialRouteName: 'success',
     headerMode: 'none'
   }
 );
